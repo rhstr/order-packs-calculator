@@ -8,6 +8,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/rhstr/order-packs-calculator/internal/pack"
 )
 
 // Execute runs the application.
@@ -21,8 +23,19 @@ func Execute() {
 	}
 
 	e := echo.New()
+
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
+	})
+	e.POST("/calculate", func(c echo.Context) error {
+		var req request
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, "Invalid request")
+		}
+
+		result := pack.CalculatePacking(req.Order, req.Packs...)
+
+		return c.JSON(http.StatusOK, result)
 	})
 
 	err := e.Start(":" + port)
@@ -49,4 +62,10 @@ func initializeLogger() {
 	}
 
 	zap.ReplaceGlobals(logger)
+}
+
+// TODO: add field validation
+type request struct {
+	Order int   `json:"order"`
+	Packs []int `json:"packs"`
 }
