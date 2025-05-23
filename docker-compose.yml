@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - order-packs-calculator
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+
+networks:
+  order-packs-calculator:
+    driver: bridge
