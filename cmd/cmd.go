@@ -15,12 +15,17 @@ func Execute() {
 	initializeLogger()
 	defer zap.L().Sync()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		zap.L().Fatal("$PORT must be set")
+	}
+
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
-	err := e.Start(":8080")
+	err := e.Start(":" + port)
 	if err != nil {
 		zap.L().Fatal("Failed to start HTTP server", zap.Error(err))
 	}
