@@ -2,50 +2,28 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
-	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/rhstr/order-packs-calculator/internal/pack"
 )
 
 // Execute runs the application.
 func Execute() {
-	initializeLogger()
+	initializeZapLogger()
 	defer zap.L().Sync()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		zap.L().Fatal("$PORT must be set")
-	}
+	cfg := serviceContainer.getConfig()
+	server := serviceContainer.getHTTPServer()
 
-	e := echo.New()
-
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-	e.POST("/calculate", func(c echo.Context) error {
-		var req request
-		if err := c.Bind(&req); err != nil {
-			return c.String(http.StatusBadRequest, "Invalid request")
-		}
-
-		result := pack.CalculatePacking(req.Order, req.Packs...)
-
-		return c.JSON(http.StatusOK, result)
-	})
-
-	err := e.Start(":" + port)
+	err := server.Start(":" + cfg.Port)
 	if err != nil {
-		zap.L().Fatal("Failed to start HTTP server", zap.Error(err))
+		zap.L().Fatal("Failed to run HTTP server", zap.Error(err))
 	}
 }
 
-// initializeLogger sets up the global logger for the application.
-func initializeLogger() {
+// initializeZapLogger sets up the global logger for the application.
+func initializeZapLogger() {
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -62,10 +40,4 @@ func initializeLogger() {
 	}
 
 	zap.ReplaceGlobals(logger)
-}
-
-// TODO: add field validation
-type request struct {
-	Order int   `json:"order"`
-	Packs []int `json:"packs"`
 }

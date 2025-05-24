@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+To be clear - I don't aspire to be a front-end developer,
+therefore this site is very simplistic (some HTML, CSS and vanilla JS).
+If I'd have to create a more complex UI, I would use a framework like React or Vue.js.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Packs Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin: 30px 0 20px 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            margin-bottom: 10px;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #000;
+            width: 100px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Order Packs Calculator</h1>
+
+    <div class="form-section">
+        <h3>Pack Sizes</h3>
+        <div id="pack-sizes-container">
+            <div class="form-row pack-input">
+                <input type="number" class="pack-size" placeholder="Pack size">
+                <button class="remove-pack" style="background-color: #f44336; margin-left: 10px;">✕</button>
+            </div>
+        </div>
+        <div class="form-row" style="margin-top: 15px;">
+            <button id="add-pack" style="background-color: #2196F3;">+ Add pack size</button>
+        </div>
+    </div>
+
+    <h2>Calculate packs for order</h2>
+    <div class="form-row">
+        <label for="items">Items: </label>
+        <input type="number" id="items" placeholder="Enter quantity">
+        <button id="calculate">Calculate</button>
+    </div>
+
+    <div id="results" style="margin-top: 20px;">
+        <table>
+            <thead>
+            <tr>
+                <th>Pack</th>
+                <th>Quantity</th>
+            </tr>
+            </thead>
+            <tbody id="results-body">
+            <!-- Results will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Initialize with one pack size input
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle adding new pack size inputs
+        document.getElementById('add-pack').addEventListener('click', function () {
+            // Check if the last pack input has a value
+            const packInputs = document.querySelectorAll('.pack-size');
+            const lastInput = packInputs[packInputs.length - 1];
+
+            if (!lastInput.value || lastInput.value.trim() === '') {
+                alert("Please fill in the last pack size before adding a new one.");
+                lastInput.focus();
+
+                return;
+            }
+
+            const container = document.getElementById('pack-sizes-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'form-row pack-input';
+            newRow.innerHTML = `
+            <input type="number" class="pack-size" placeholder="Pack size">
+            <button class="remove-pack" style="background-color: #f44336; margin-left: 10px;">✕</button>
+        `;
+            container.appendChild(newRow);
+
+            // Add event listener to the new remove button
+            newRow.querySelector('.remove-pack').addEventListener('click', function () {
+                container.removeChild(newRow);
+            });
+        });
+
+        // Add event listener to the initial remove button
+        document.querySelector('.remove-pack').addEventListener('click', function () {
+            const row = this.parentElement;
+            // Don't remove if it's the last one
+            if (document.querySelectorAll('.pack-input').length > 1) {
+                row.parentElement.removeChild(row);
+            }
+        });
+
+        // Handle calculation
+        document.getElementById('calculate').addEventListener('click', function () {
+            const items = document.getElementById('items').value;
+            const packSizes = [];
+
+            document.querySelectorAll('.pack-size').forEach(input => {
+                if (input.value) {
+                    // Validate input
+                    if (isNaN(input.value) || parseInt(input.value, 10) <= 0) {
+                        alert("Please enter a valid positive number for pack size");
+
+                        return;
+                    }
+                    packSizes.push(parseInt(input.value, 10));
+                }
+            });
+
+            if (!items || packSizes.length === 0) {
+                alert("Please enter items quantity and at least one pack size");
+                return;
+            }
+
+            // Call calculation endpoint
+            fetch('/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orderedItems: parseInt(items, 10),
+                    boxSizes: packSizes
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const resultBody = document.getElementById('results-body');
+                    resultBody.innerHTML = '';
+
+                    for (const item of data) {
+                        resultBody.innerHTML += `
+                <tr>
+                    <td>${item.boxSize}</td>
+                    <td>${item.quantity}</td>
+                </tr>
+            `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to calculate. See console for details.');
+                });
+        });
+    });
+</script>
+</body>
+</html>
