@@ -2,6 +2,7 @@ package pack
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"sort"
 )
@@ -12,10 +13,30 @@ type Packing struct {
 	Quantity int `json:"quantity"`
 }
 
+type Calculator interface {
+	// CalculatePacking calculates the optimal packing of items into boxes of given sizes.
+	CalculatePacking(order int, packs ...int) ([]Packing, error)
+}
+
+type calculator struct {
+	orderLimit int
+}
+
+// NewCalculator creates a new instance of Calculator.
+func NewCalculator(orderLimit int) Calculator {
+	return &calculator{
+		orderLimit: orderLimit,
+	}
+}
+
 // CalculatePacking calculates the optimal packing of items into boxes of given sizes.
-func CalculatePacking(order int, packs ...int) ([]Packing, error) {
+func (c *calculator) CalculatePacking(order int, packs ...int) ([]Packing, error) {
 	if order <= 0 {
 		return nil, errors.New("order size must be greater than zero")
+	}
+
+	if order > c.orderLimit {
+		return nil, fmt.Errorf("order size exceeds the limit of %d items", c.orderLimit)
 	}
 
 	if len(packs) == 0 {
@@ -28,11 +49,11 @@ func CalculatePacking(order int, packs ...int) ([]Packing, error) {
 		}
 	}
 
-	if arePacksDuplicated(packs) {
+	if c.arePacksDuplicated(packs) {
 		return nil, errors.New("pack sizes must be unique")
 	}
 
-	calculations := calculatePackingDP(order, packs...)
+	calculations := c.calculatePackingDP(order, packs...)
 	if calculations == nil {
 		return nil, errors.New("no packing solution found")
 	}
@@ -53,7 +74,7 @@ func CalculatePacking(order int, packs ...int) ([]Packing, error) {
 }
 
 // arePacksDuplicated checks if there are any duplicate pack sizes.
-func arePacksDuplicated(packs []int) bool {
+func (c *calculator) arePacksDuplicated(packs []int) bool {
 	if len(packs) < 2 {
 		return false
 	}
@@ -69,7 +90,7 @@ func arePacksDuplicated(packs []int) bool {
 }
 
 // calculatePackingDP uses dynamic programming to find the optimal packing solution.
-func calculatePackingDP(order int, packs ...int) map[int]int {
+func (c *calculator) calculatePackingDP(order int, packs ...int) map[int]int {
 	slices.SortFunc(packs, func(a, b int) int { return b - a })
 
 	limit := order + packs[0] // allow overpacking up to one largest pack

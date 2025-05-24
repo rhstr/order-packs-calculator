@@ -18,13 +18,15 @@ type HTTPHandler interface {
 }
 
 type handler struct {
-	cache pack.Cache
+	calculator pack.Calculator
+	cache      pack.Cache
 }
 
 // NewHandler creates a new instance of HTTPHandler with the provided cache.
-func NewHandler(cache pack.Cache) HTTPHandler {
+func NewHandler(calculator pack.Calculator, cache pack.Cache) HTTPHandler {
 	return &handler{
-		cache: cache,
+		calculator: calculator,
+		cache:      cache,
 	}
 }
 
@@ -63,7 +65,7 @@ func (h *handler) handleCalculation(c echo.Context) error {
 		return c.JSON(http.StatusOK, result)
 	}
 
-	result, err = pack.CalculatePacking(req.OrderedItems, req.BoxSizes...)
+	result, err = h.calculator.CalculatePacking(req.OrderedItems, req.BoxSizes...)
 	if err != nil {
 		zap.L().Error("failed to calculate packing", zap.Error(err))
 
@@ -76,8 +78,7 @@ func (h *handler) handleCalculation(c echo.Context) error {
 }
 
 // calculateRequest represents the request body for the packing calculation.
-// Ordered items and box sizes cannot be greater than (2^53 - 1) due to JS limitations.
 type calculateRequest struct {
-	OrderedItems int   `json:"orderedItems" validate:"required,gt=0,lte=9007199254740991"`
-	BoxSizes     []int `json:"boxSizes" validate:"required,unique,dive,gt=0,lte=9007199254740991"`
+	OrderedItems int   `json:"orderedItems" validate:"required,gt=0,lte=1000000"`
+	BoxSizes     []int `json:"boxSizes" validate:"required,unique,dive,gt=0,lte=1000000"`
 }

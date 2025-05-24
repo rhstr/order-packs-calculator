@@ -19,7 +19,8 @@ type diContainer struct {
 	httpServer  *echo.Echo
 	httpHandler api.HTTPHandler
 
-	packCache pack.Cache
+	packCalculator pack.Calculator
+	packCache      pack.Cache
 }
 
 func (c *diContainer) getConfig() config.Config {
@@ -85,10 +86,18 @@ func (c *diContainer) getHTTPServer() *echo.Echo {
 
 func (c *diContainer) getHTTPHandler() api.HTTPHandler {
 	if c.httpHandler == nil {
-		c.httpHandler = api.NewHandler(c.getPackCache())
+		c.httpHandler = api.NewHandler(c.getPackCalculator(), c.getPackCache())
 	}
 
 	return c.httpHandler
+}
+
+func (c *diContainer) getPackCalculator() pack.Calculator {
+	if c.packCalculator == nil {
+		c.packCalculator = pack.NewCalculator(c.getConfig().OrderSizeLimit)
+	}
+
+	return c.packCalculator
 }
 
 func (c *diContainer) getPackCache() pack.Cache {

@@ -64,7 +64,9 @@ func TestCalculatePacking(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := pack.CalculatePacking(tc.orderSize, tc.packs...)
+			calc := pack.NewCalculator(1000000)
+
+			got, err := calc.CalculatePacking(tc.orderSize, tc.packs...)
 			if tc.wantErr {
 				assert.Error(t, err)
 
