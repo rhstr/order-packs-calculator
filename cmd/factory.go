@@ -7,14 +7,19 @@ import (
 
 	"github.com/rhstr/order-packs-calculator/internal/api"
 	"github.com/rhstr/order-packs-calculator/internal/config"
+	"github.com/rhstr/order-packs-calculator/internal/pack"
 )
 
 var serviceContainer = new(diContainer)
 
 // diContainer is a dependency injection container for the application.
 type diContainer struct {
-	cfg        config.Config
-	httpServer *echo.Echo
+	cfg config.Config
+
+	httpServer  *echo.Echo
+	httpHandler api.HTTPHandler
+
+	packCache pack.Cache
 }
 
 func (c *diContainer) getConfig() config.Config {
@@ -72,8 +77,29 @@ func (c *diContainer) getHTTPServer() *echo.Echo {
 			},
 		}))
 
-		api.RegisterRoutes(c.httpServer)
+		c.getHTTPHandler().RegisterRoutes(c.httpServer)
 	}
 
 	return c.httpServer
+}
+
+func (c *diContainer) getHTTPHandler() api.HTTPHandler {
+	if c.httpHandler == nil {
+		c.httpHandler = api.NewHandler(c.getPackCache())
+	}
+
+	return c.httpHandler
+}
+
+func (c *diContainer) getPackCache() pack.Cache {
+	if c.packCache == nil {
+		cache, err := pack.NewInMemoryCache()
+		if err != nil {
+			zap.L().Fatal("failed to create pack cache", zap.Error(err))
+		}
+
+		c.packCache = cache
+	}
+
+	return c.packCache
 }
