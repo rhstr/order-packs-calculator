@@ -35,6 +35,12 @@ func TestCalculatePacking(t *testing.T) {
 			wantErr:   true,
 		},
 		{
+			name:      "error: order size exceeds limit",
+			orderSize: 1000001,
+			packs:     []int{23, 31, 53},
+			wantErr:   true,
+		},
+		{
 			name:      "error: order size is negative",
 			orderSize: -1,
 			packs:     []int{23, 31, 53},
